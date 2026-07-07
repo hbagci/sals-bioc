@@ -46,3 +46,7 @@ Upload a numeric CSV, select the target column, adjust parameters, and run the g
 | `lstm.py` | LSTM soft-sensor model |
 | `lifelong_lstm.py` | Lifelong-learning adaptation model |
 | `synthetic-data-comparison/` | Flask server and web interface |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
