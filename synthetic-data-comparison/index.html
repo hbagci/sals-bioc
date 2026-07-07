@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SALS-BioC: Real-Time Soft-Sensor-Based Adaptation Learning Simulator for Predicting Biological Contaminants</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+
+    <!-- ── App header ─────────────────────────────────────────────────────── -->
+    <header class="app-header">
+        <h1>SALS-BioC: Real-Time Soft-Sensor-Based Adaptation Learning Simulator for Predicting Biological Contaminants</h1>
+        <span class="subtitle">Pick a real CSV, tune parameters, and compare synthetic output in real time.</span>
+    </header>
+
+    <!-- ── Real-data bar ──────────────────────────────────────────────────── -->
+    <div class="real-data-bar">
+        <span class="bar-title">Real Data (Reference)</span>
+        <div class="file-controls">
+            <input type="file" id="real-file" accept=".csv">
+            <label for="real-file" class="btn-file">Choose CSV</label>
+            <button id="real-clear" class="btn-clear">&#10005; Clear</button>
+            <span class="file-name" id="real-filename">No file selected</span>
+            <span class="data-info" id="real-info"></span>
+            <span class="loading-indicator" id="real-loading">Loading&hellip;</span>
+        </div>
+        <div class="advanced-options">
+            <button id="adv-toggle" class="btn-advanced" type="button">&#9881; Advanced Options &#9662;</button>
+            <div class="advanced-menu" id="advanced-menu" hidden>
+                <div class="adv-menu-title">View</div>
+                <label class="adv-opt"><input type="radio" name="view-mode" value="gcrw"> Only EMCM-GCRW</label>
+                <label class="adv-opt"><input type="radio" name="view-mode" value="ps"> Only EMCM-PS</label>
+                <label class="adv-opt"><input type="radio" name="view-mode" value="both" checked> Both algorithms</label>
+                <button class="adv-opt adv-link" id="adv-compare" type="button">Compare page &#8594;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Scrollable page body ───────────────────────────────────────────── -->
+    <div class="page-scroll">
+
+        <!-- Data generation section (collapsible) -->
+        <details id="datagen-section" open>
+            <summary class="section-toggle">Data Generation</summary>
+
+            <div class="comparison-container">
+
+                <!-- Left panel -->
+                <div class="panel left">
+                    <div class="panel-header">
+                        <span class="panel-title" id="left-title">Synthetic A</span>
+                        <div class="gen-controls">
+                            <button id="left-generate" class="btn-generate" disabled>Generate</button>
+                            <label class="auto-toggle"><input type="checkbox" id="left-auto"> Auto-regenerate</label>
+                            <button id="left-download" class="btn-download" disabled>Download CSV</button>
+                            <span class="stats-info" id="left-stats-info"></span>
+                            <span class="loading-indicator" id="left-loading">Generating&hellip;</span>
+                        </div>
+                    </div>
+                    <div class="params-mount" id="left-params"></div>
+                    <div class="panel-content" id="left-content">
+                        <div class="placeholder">Load a real CSV above to begin — results will appear here.</div>
+                    </div>
+                </div>
+
+                <!-- Right panel -->
+                <div class="panel right">
+                    <div class="panel-header">
+                        <span class="panel-title" id="right-title">Synthetic B</span>
+                        <div class="gen-controls">
+                            <button id="right-generate" class="btn-generate" disabled>Generate</button>
+                            <label class="auto-toggle"><input type="checkbox" id="right-auto"> Auto-regenerate</label>
+                            <button id="right-download" class="btn-download" disabled>Download CSV</button>
+                            <span class="stats-info" id="right-stats-info"></span>
+                            <span class="loading-indicator" id="right-loading">Generating&hellip;</span>
+                        </div>
+                    </div>
+                    <div class="params-mount" id="right-params"></div>
+                    <div class="panel-content" id="right-content">
+                        <div class="placeholder">Load a real CSV above to begin — results will appear here.</div>
+                    </div>
+                </div>
+
+            </div>
+        </details>
+
+        <!-- LSTM Analysis section (collapsible) -->
+        <details id="lstm-section" open>
+            <summary class="section-toggle">LSTM Analysis</summary>
+            <div class="lstm-container">
+                <div class="lstm-side" data-side="left"></div>
+                <div class="lstm-side" data-side="right"></div>
+            </div>
+        </details>
+
+        <!-- Lifelong-LSTM section (collapsible) -->
+        <details id="lifelong-lstm-section" open>
+            <summary class="section-toggle">Lifelong-LSTM Analysis</summary>
+            <div class="lstm-container">
+                <div class="lifelong-side" data-side="left"></div>
+                <div class="lifelong-side" data-side="right"></div>
+            </div>
+        </details>
+
+    </div><!-- end .page-scroll -->
+
+    <!-- ── Target column selection modal ─────────────────────────────────── -->
+    <dialog id="target-column-modal">
+        <form method="dialog" class="modal-form">
+            <h2 class="modal-title">Select Target Column</h2>
+            <p class="modal-desc">Choose the column the LSTM will predict.</p>
+            <div class="modal-col-list" id="modal-col-list"></div>
+            <div class="modal-actions">
+                <button type="submit" id="modal-confirm" class="btn-generate" disabled>Confirm</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- ── Scripts (load order matters) ──────────────────────────────────── -->
+    <script src="js/config.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/metrics.js"></script>
+    <script src="js/dimreduction.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/params.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/panel.js"></script>
+    <script src="js/lstm.js"></script>
+    <script src="js/lifelong.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>

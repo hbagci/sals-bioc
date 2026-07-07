@@ -1,0 +1,19 @@
+# Folders
+archive/
+output/
+report/
+venv/
+.venv/
+
+# OS/editor noise
+.DS_Store
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+Thumbs.db
+*.csv
+*.pt
+*.pth
+.env
+*.md
+!README.md
