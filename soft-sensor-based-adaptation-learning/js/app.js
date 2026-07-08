@@ -28,17 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function visibleSides() {
-        if (document.body.classList.contains('view-ps'))   return ['right'];
-        if (document.body.classList.contains('view-gcrw')) return ['left'];
+        if (document.body.classList.contains('view-ps')) return ['right'];
         return ['left', 'right'];
     }
 
     function applyViewMode(mode) {
         const root = document.documentElement;
-        document.body.classList.remove('view-ps', 'view-gcrw');
-        root.classList.remove('view-ps', 'view-gcrw');
-        if (mode === 'ps')   { document.body.classList.add('view-ps');   root.classList.add('view-ps'); }
-        if (mode === 'gcrw') { document.body.classList.add('view-gcrw'); root.classList.add('view-gcrw'); }
+        document.body.classList.remove('view-ps');
+        root.classList.remove('view-ps');
+        if (mode === 'ps') { document.body.classList.add('view-ps'); root.classList.add('view-ps'); }
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     }
 
@@ -58,11 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-    });
-
-    const advCompareBtn = document.getElementById('adv-compare');
-    advCompareBtn.addEventListener('click', () => {
-        window.location.href = '/compare';
     });
 
     // ── State ──────────────────────────────────────────────────────────────

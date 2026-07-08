@@ -1,4 +1,3 @@
-import heapq
 import os
 import numpy as np
 import pandas as pd
@@ -45,8 +44,7 @@ def augment_data(data, num_new_samples=100, noise_level=0.05):
 
 # ============================================================================
 # STAGE 2 — Discretization
-#   a) adaptive_discretize            — fixed quantile bins (fallback)
-#   b) adaptive_bucketing_discretize  — cluster + T-quantile sub-bins, binary-search T
+#   adaptive_discretize — fixed quantile bins
 # ============================================================================
 
 def adaptive_discretize(data, num_buckets=5):
@@ -75,92 +73,6 @@ def adaptive_discretize(data, num_buckets=5):
 
 
 EDGE_EPSILON = 1e-9
-MAX_SPLITS = 2000
-
-
-def _digitize(values, edges):
-    return np.clip(np.digitize(values, edges) - 1, 0, len(edges) - 2)
-
-
-def adaptive_bucketing_discretize(data, max_state_ratio=0.3, max_buckets_per_feature=1000,
-                        noise_level=0.05, return_summary=False):
-    n_total = len(data)
-    cols = list(data.columns)
-
-    edges = {}
-    col_buckets = {}
-    for col in cols:
-        v = data[col].values.astype(float)
-        lo, hi = float(v.min()), float(v.max())
-        edges[col] = [lo, hi + EDGE_EPSILON]
-        col_buckets[col] = np.zeros(n_total, dtype=int)
-
-    def current_ratio(overrides=None):
-        arrs = [overrides[c] if overrides and c in overrides else col_buckets[c] for c in cols]
-        rows = set(map(tuple, np.stack(arrs, axis=1).tolist()))
-        return len(rows) / n_total
-
-    heap = []
-    seen = set()
-    for col in cols:
-        uniq = np.sort(np.unique(data[col].values.astype(float)))
-        rng = float(uniq[-1] - uniq[0]) or 1.0
-        for i in range(len(uniq) - 1):
-            g = float(uniq[i+1] - uniq[i])
-            if g > EDGE_EPSILON:
-                heapq.heappush(heap, (-g / rng, col, float(uniq[i]), float(uniq[i+1]), g))
-
-    step = 0
-    accepted = 0
-    while heap and step < MAX_SPLITS:
-        neg_rel, col, lv, rv, abs_gap = heapq.heappop(heap)
-        key = (col, round(lv, 10), round(rv, 10))
-        if key in seen:
-            continue
-        seen.add(key)
-        if len(edges[col]) - 1 >= max_buckets_per_feature:
-            continue
-
-        trial_e = sorted(set(edges[col] + [lv + EDGE_EPSILON, rv - EDGE_EPSILON]))
-        trial_labels = _digitize(data[col].values.astype(float), trial_e)
-        trial_ratio = current_ratio({col: trial_labels})
-
-        step += 1
-        if trial_ratio <= max_state_ratio:
-            edges[col] = trial_e
-            col_buckets[col] = trial_labels
-            accepted += 1
-
-    for col in cols:
-        edges[col] = np.asarray(edges[col], dtype=float)
-
-    disc = pd.DataFrame(col_buckets)
-    final_ratio = current_ratio()
-    unreachable = final_ratio > max_state_ratio
-    edges_out = {c: np.asarray(edges[c], dtype=float) for c in cols}
-
-    header = "target unreachable" if unreachable else "converged"
-    print(f"\n--- STAGE 2: Adaptive Bucketing (recursive largest-gap, {header}) ---")
-    print(f"  Splits: {step}, accepted: {accepted}, state ratio: {final_ratio:.3f} (target <= {max_state_ratio})")
-    for c in cols:
-        e = edges_out[c]
-        used = len(set(disc[c].tolist()))
-        empty = (len(e) - 1) - used
-        tag = f", {empty} empty" if empty else ""
-        print(f"  {c}: {len(e)-1} buckets{tag} -> {['%.4g' % v for v in e]}")
-
-    if return_summary:
-        summary = {
-            'phase': 'final',
-            'n_splits': step,
-            'n_accepted': accepted,
-            'final_ratio': round(float(final_ratio), 4),
-            'target_ratio': float(max_state_ratio),
-            'unreachable': bool(unreachable),
-            'final_edges': {c: [float(v) for v in edges_out[c]] for c in cols},
-        }
-        return disc, edges_out, summary
-    return disc, edges_out
 
 
 # ============================================================================
@@ -305,9 +217,6 @@ def main():
     num_augmented_samples = 1
     noise_level = 0.05
     num_buckets = 5
-    adaptive_bucketing = False
-    max_state_ratio = 0.3
-    max_buckets_per_feature = 1000
     decoder_mode = "uniform"
 
     # ── Stage 0: Load ──────────────────────────────────────────────────────
@@ -321,15 +230,10 @@ def main():
     print(augmented_data.tail(3))
 
     # ── Stage 2: Discretize ────────────────────────────────────────────────
-    if adaptive_bucketing:
-        discretized_data, bucket_edges = adaptive_bucketing_discretize(
-            augmented_data, max_state_ratio=max_state_ratio,
-            max_buckets_per_feature=max_buckets_per_feature, noise_level=noise_level)
-    else:
-        discretized_data, bucket_edges = adaptive_discretize(augmented_data, num_buckets=num_buckets)
-        print(f"\n--- STAGE 2: Data Discretized (quantile-based, {num_buckets} buckets) ---")
-        for col, edges in bucket_edges.items():
-            print(f"  {col}: {len(edges)-1} buckets -> {['%.4f' % e for e in edges]}")
+    discretized_data, bucket_edges = adaptive_discretize(augmented_data, num_buckets=num_buckets)
+    print(f"\n--- STAGE 2: Data Discretized (quantile-based, {num_buckets} buckets) ---")
+    for col, edges in bucket_edges.items():
+        print(f"  {col}: {len(edges)-1} buckets -> {['%.4f' % e for e in edges]}")
 
     # ── Stage 3: Encode states ─────────────────────────────────────────────
     state_ids, state_mapping = define_states(discretized_data)

@@ -116,34 +116,21 @@ body {
 }
 .adv-opt:hover { background: var(--section-bg); }
 .adv-opt input[type="radio"] { cursor: pointer; }
-.adv-link {
-    margin-top: 4px; border-top: 1px solid var(--border); border-radius: 0 0 5px 5px;
-    color: var(--real); font-weight: 600;
-}
 
-/* ── Single-algorithm focus views ──────────────────────────────────────────── */
+/* ── Single-panel focus view ─────────────────────────────────────────────── */
 body.view-ps .panel.left,
 body.view-ps .lstm-side[data-side="left"],
 body.view-ps .lifelong-side[data-side="left"] { display: none; }
-body.view-gcrw .panel.right,
-body.view-gcrw .lstm-side[data-side="right"],
-body.view-gcrw .lifelong-side[data-side="right"] { display: none; }
 
-/* Bigger, screenshot-friendly text in single-algorithm view (chart text scaled separately by Charts.FS) */
-html.view-ps,
-html.view-gcrw { font-size: 21px; }
-body.view-ps,
-body.view-gcrw { font-size: 18px; }
+/* Bigger, screenshot-friendly text in single-panel view (chart text scaled separately by Charts.FS) */
+html.view-ps { font-size: 21px; }
+body.view-ps { font-size: 18px; }
 
 /* Keep fixed-px widgets in step with the larger single-view font */
-body.view-ps  .bar-label,
-body.view-gcrw .bar-label        { width: 260px; }
-body.view-ps  .bar-val,
-body.view-gcrw .bar-val          { width: 44px; }
-body.view-ps  .score-ring,
-body.view-gcrw .score-ring       { width: 150px; height: 150px; }
-body.view-ps  .score-ring-inner,
-body.view-gcrw .score-ring-inner { width: 116px; height: 116px; }
+body.view-ps  .bar-label        { width: 260px; }
+body.view-ps  .bar-val          { width: 44px; }
+body.view-ps  .score-ring       { width: 150px; height: 150px; }
+body.view-ps  .score-ring-inner { width: 116px; height: 116px; }
 
 /* ── Section toggles (datagen / lstm collapsible headers) ──────────────────── */
 #datagen-section, #lstm-section {
@@ -462,63 +449,6 @@ details.viz-section > summary.section-title:hover { color: var(--text); }
     cursor: pointer;
 }
 .auto-toggle input { width: 13px; height: 13px; cursor: pointer; }
-
-/* ── Bucketing iteration trace (EMCM-PS only) ─────────────────────────────── */
-.bucketing-iter-section {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    margin: 14px 0;
-}
-.bucketing-iter-section[open] { background: #fafbfc; }
-.bucketing-iter-summary {
-    cursor: pointer;
-    user-select: none;
-    list-style: none;
-    font-weight: 600;
-    color: var(--text);
-    display: flex; align-items: center; gap: 8px;
-}
-.bucketing-iter-summary::before {
-    content: '▸';
-    font-size: .8rem;
-    transition: transform .15s;
-    color: var(--text-muted);
-}
-.bucketing-iter-section[open] .bucketing-iter-summary::before { transform: rotate(90deg); }
-.bucketing-iter-section.blank .bucketing-iter-summary { color: var(--text-muted); font-weight: 500; }
-
-.bucketing-iter-body { margin-top: 10px; }
-.bucketing-iter-banner {
-    padding: 8px 10px;
-    border-radius: 4px;
-    background: #eafaf1;
-    color: #1e6b3a;
-    font-size: .82rem;
-    margin-bottom: 10px;
-}
-.bucketing-iter-banner.warn {
-    background: #fef4e6;
-    color: #8a5a08;
-}
-.bucketing-iter-blank {
-    color: var(--text-muted);
-    font-style: italic;
-    font-size: .82rem;
-    padding: 8px 4px;
-}
-.moves-title { font-weight: 600; margin-bottom: 6px; color: var(--text); }
-
-.bucketing-iter-edges { margin-top: 12px; font-size: .76rem; }
-.bucketing-iter-edges-table td.edges-cell {
-    text-align: left;
-    font-family: 'Consolas', 'Menlo', monospace;
-    font-size: .72rem;
-    color: var(--text-muted);
-    word-break: break-word;
-    max-width: 0; /* forces wrap inside flexible width */
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* LSTM SECTION                                                               */

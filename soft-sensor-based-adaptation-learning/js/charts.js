@@ -6,8 +6,7 @@ const Charts = {
     SYNTH:       { left: '#2980b9', right: '#c0392b' },
 
     FS(px) {
-        const single = document.body.classList.contains('view-ps') ||
-                       document.body.classList.contains('view-gcrw');
+        const single = document.body.classList.contains('view-ps');
         return single ? Math.round(px * 1.35) : px;
     },
 
@@ -374,8 +373,7 @@ const Charts = {
     _scatterPlot(el, real, synth, side, xLabel, yLabel) {
         el.classList.add('proj-scatter');
         const synthColor = Charts.SYNTH[side];
-        const singleView = document.body.classList.contains('view-ps') ||
-                           document.body.classList.contains('view-gcrw');
+        const singleView = document.body.classList.contains('view-ps');
         Plotly.newPlot(el, [
             {
                 type: 'scattergl', mode: 'markers',
@@ -588,74 +586,6 @@ const Charts = {
             xaxis: { tickangle: -45, tickfont: { size: Charts.FS(10) } },
             yaxis: { autorange: 'reversed', tickfont: { size: Charts.FS(10) } },
         }, Charts.PLOTLY_CFG);
-    },
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // BUCKETING ITERATIONS  (EMCM-PS only — right side shows content, left stays blank)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    renderBucketingIterations(container, trace) {
-        if (!Config.show.bucketingIterations) return;
-
-        const sec = document.createElement('details');
-        sec.className = 'viz-section bucketing-iter-section';
-        sec.open = false;
-
-        const summary = document.createElement('summary');
-        summary.className = 'section-title bucketing-iter-summary';
-        summary.textContent = 'Adaptive Bucketing — Recursive Largest-Gap Splits';
-        sec.appendChild(summary);
-
-        const body = document.createElement('div');
-        body.className = 'bucketing-iter-body';
-
-        if (!trace || trace.length === 0) {
-            body.innerHTML = '<div class="bucketing-iter-blank">— Not applicable for this algorithm —</div>';
-            sec.appendChild(body);
-            container.appendChild(sec);
-            return;
-        }
-
-        const final = trace[trace.length - 1];
-        const finalRatio = final.final_ratio !== undefined ? final.final_ratio : final.ratio;
-        const targetRatio = final.target_ratio;
-        const unreachable = !!final.unreachable;
-        const nSplits   = final.n_splits    !== undefined ? final.n_splits    : trace.length - 1;
-        const nAccepted = final.n_accepted  !== undefined ? final.n_accepted  : trace.filter(s => s.phase !== 'final' && s.accepted).length;
-
-        const banner = document.createElement('div');
-        banner.className = 'bucketing-iter-banner';
-        if (unreachable) {
-            banner.innerHTML = `<strong>Target not reachable</strong> — tried ${nSplits} splits (${nAccepted} accepted), final state ratio ${finalRatio} (target ≤ ${targetRatio}). Each step pops the largest remaining gap (relative to its column's range) and cuts there, creating a <em>ghost bucket</em> in the empty region. A split is accepted only if the new joint-state ratio stays within the target.`;
-            banner.classList.add('warn');
-        } else {
-            banner.innerHTML = `<strong>Converged</strong> — ${nAccepted} / ${nSplits} splits accepted, final state ratio ${finalRatio} (target ≤ ${targetRatio}). Each step pops the largest remaining gap (relative to its column's range) and cuts there, creating a <em>ghost bucket</em> in the empty region. A split is accepted only if the new joint-state ratio stays within the target.`;
-        }
-        body.appendChild(banner);
-
-        // Final per-column edges
-        if (final.final_edges) {
-            const edgesWrap = document.createElement('div');
-            edgesWrap.className = 'bucketing-iter-edges';
-            edgesWrap.innerHTML = '<div class="moves-title">Final bucket edges per column</div>';
-            const etbl = document.createElement('table');
-            etbl.className = 'stats-table bucketing-iter-edges-table';
-            etbl.innerHTML = '<thead><tr><th>Column</th><th># Buckets</th><th>Edges</th></tr></thead>';
-            const etb = document.createElement('tbody');
-            Object.entries(final.final_edges).forEach(([col, edges]) => {
-                const nb = edges.length - 1;
-                const edgesStr = edges.map(e => e.toFixed(4)).join(', ');
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${col}</td><td>${nb}</td><td class="edges-cell">${edgesStr}</td>`;
-                etb.appendChild(tr);
-            });
-            etbl.appendChild(etb);
-            edgesWrap.appendChild(etbl);
-            body.appendChild(edgesWrap);
-        }
-
-        sec.appendChild(body);
-        container.appendChild(sec);
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -955,20 +885,4 @@ const Charts = {
         }, Charts.PLOTLY_CFG);
     },
 
-    /** Render an empty placeholder so the opposite side keeps visual alignment. */
-    renderBucketingIterationsBlank(container) {
-        if (!Config.show.bucketingIterations) return;
-        const sec = document.createElement('details');
-        sec.className = 'viz-section bucketing-iter-section blank';
-        sec.open = false;
-        const summary = document.createElement('summary');
-        summary.className = 'section-title bucketing-iter-summary';
-        summary.textContent = 'Adaptive Bucketing — Iteration Trace';
-        sec.appendChild(summary);
-        const body = document.createElement('div');
-        body.className = 'bucketing-iter-body';
-        body.innerHTML = '<div class="bucketing-iter-blank">— Not applicable for this algorithm —</div>';
-        sec.appendChild(body);
-        container.appendChild(sec);
-    },
 };

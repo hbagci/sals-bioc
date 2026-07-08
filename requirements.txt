@@ -3,6 +3,5 @@ numpy
 pandas
 scipy
 scikit-learn
-copulas
 torch
 bayesian-optimization

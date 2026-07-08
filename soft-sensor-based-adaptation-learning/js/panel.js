@@ -89,17 +89,6 @@ class Panel {
             if (show.metricsDetail)
                 Charts.renderMetricsTable(content, report);
 
-            // Bucketing iteration trace — EMCM-PS-only content on the side that has it;
-            // the opposite side renders a blank placeholder so the two columns stay aligned.
-            if (show.bucketingIterations) {
-                const trace = this.stats && this.stats.bucketing_trace;
-                if (trace && trace.length) {
-                    Charts.renderBucketingIterations(content, trace);
-                } else {
-                    Charts.renderBucketingIterationsBlank(content);
-                }
-            }
-
         } else {
             if (realData && commonCols && commonCols.length === 0) {
                 const warn = document.createElement('div');

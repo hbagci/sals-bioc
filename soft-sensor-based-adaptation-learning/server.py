@@ -20,7 +20,6 @@ ROOT  = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
 import emcm_ps       # noqa: E402
-import emcm_gcrw     # noqa: E402
 import lstm          # noqa: E402
 import lifelong_lstm # noqa: E402
 
@@ -40,12 +39,6 @@ _LIFELONG_SESSIONS = {}
 @app.route("/")
 def index():
     return send_from_directory(HERE, "index.html")
-
-
-@app.route("/compare")
-@app.route("/compare.html")
-def compare():
-    return send_from_directory(HERE, "compare.html")
 
 
 def _load_dataframe(body):
@@ -108,9 +101,6 @@ def generate_emcm_ps():
         num_augmented_samples  = int(params.get("num_augmented_samples", 200))
         noise_level            = float(params.get("noise_level", 0.03))
         num_buckets            = int(params.get("num_buckets", 5))
-        adaptive_bucketing     = bool(params.get("adaptive_bucketing", True))
-        max_state_ratio        = float(params.get("max_state_ratio", 0.3))
-        max_buckets_per_feature= int(params.get("max_buckets_per_feature", 20))
         decoder_mode           = str(params.get("decoder_mode", "local"))
         start_row              = int(params.get("start_row", 0))
         end_row                = params.get("end_row")
@@ -130,15 +120,7 @@ def generate_emcm_ps():
         )
 
         # Discretization
-        bucketing_trace = None
-        if adaptive_bucketing:
-            disc, edges, _summary = emcm_ps.adaptive_bucketing_discretize(
-                aug, max_state_ratio=max_state_ratio,
-                max_buckets_per_feature=max_buckets_per_feature,
-                noise_level=noise_level, return_summary=True)
-            bucketing_trace = [_summary]
-        else:
-            disc, edges = emcm_ps.adaptive_discretize(aug, num_buckets=num_buckets)
+        disc, edges = emcm_ps.adaptive_discretize(aug, num_buckets=num_buckets)
 
         state_ids, state_mapping = emcm_ps.define_states(disc)
         num_states = len(state_mapping)
@@ -162,66 +144,6 @@ def generate_emcm_ps():
             "state_ratio": round(num_states / len(state_ids), 4),
             "num_augmented_rows": int(len(aug)),
             "num_buckets_per_col": {c: int(len(e) - 1) for c, e in edges.items()},
-            "bucketing_trace": bucketing_trace,
-        }
-
-        return jsonify({
-            "columns": out.columns.tolist(),
-            "rows": out.values.tolist(),
-            "stats": stats,
-        })
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 400
-
-
-@app.post("/api/generate/emcm-gcrw")
-def generate_emcm_gcrw():
-    try:
-        body = request.get_json(force=True) or {}
-        params = body.get("params", {})
-        data = _load_dataframe(body)
-
-        num_samples             = int(params.get("num_samples", 2000))
-        markov_buckets          = int(params.get("markov_buckets", 15))
-        smoothing_alpha         = float(params.get("smoothing_alpha", 0.01))
-        mix_ratio               = float(params.get("mix_ratio", 0.25))
-        ensemble_mode           = str(params.get("ensemble_mode", "sequential"))
-        batch_size              = int(params.get("batch_size", 100))
-        adaptive_bucketing      = bool(params.get("adaptive_bucketing", False))
-        max_state_ratio         = float(params.get("max_state_ratio", 0.3))
-        max_buckets_per_feature = int(params.get("max_buckets_per_feature", 1000))
-        start_row               = int(params.get("start_row", 0))
-        end_row                 = params.get("end_row")
-
-        if end_row is not None and end_row != "":
-            data = data.iloc[start_row:int(end_row)].reset_index(drop=True)
-        elif start_row:
-            data = data.iloc[start_row:].reset_index(drop=True)
-
-        _seed()
-
-        gen = emcm_gcrw.CopulaMarkovGenerator(
-            markov_buckets=markov_buckets,
-            smoothing_alpha=smoothing_alpha,
-            adaptive_bucketing=adaptive_bucketing,
-            max_state_ratio=max_state_ratio,
-            max_buckets_per_feature=max_buckets_per_feature,
-        )
-        out = gen.generate(
-            data,
-            num_samples=num_samples,
-            mix_ratio=mix_ratio,
-            ensemble_mode=ensemble_mode,
-            batch_size=batch_size,
-        )
-
-        bucketing_trace = getattr(gen.markov_gen, "last_bucketing_trace", None)
-        stats = {
-            "num_rows": int(len(out)),
-            "input_rows": int(len(data)),
-            "bucketing_trace": bucketing_trace,
         }
 
         return jsonify({
