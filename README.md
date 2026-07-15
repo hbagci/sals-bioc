@@ -6,9 +6,9 @@ SALS-BioC is an interactive, browser-based simulator that couples a synthetic da
 
 The tool runs as a local web application dashboard, organized into three workflows:
 
-- **Synthetic data generation** — augment a dataset with the EMCM-PS generator (a Markov-chain model using a joint-state representation and probabilistic sampling). Inspect quality through marginal distributions, Pearson correlation heatmaps, PCA / t-SNE projections, and a fidelity scorecard. Export generated data as CSV.
+- **Synthetic data generation** — augment collected real samples [3] with the EMCM-PS generator (a Markov-chain model using a joint-state representation and probabilistic sampling). Inspect quality through marginal distributions, Pearson correlation heatmaps, PCA / t-SNE projections, and a fidelity scorecard. Export generated data as CSV.
 - **LSTM soft-sensor** — train and test an LSTM to predict a selected target from process variables, validate on unseen data, and download trained models.
-- **Lifelong-learning adaptation** — train a source-domain model, adapt it to an unseen target replicate, and track per-batch adaptation performance, with optional Bayesian hyperparameter optimization.
+- **Lifelong-learning adaptation** — train a source-domain model, adapt it to an unseen target replicate, and track per-batch adaptation performance, with optional Bayesian hyperparameter optimization [1, 2].
 
 ## Requirements
 
@@ -45,6 +45,12 @@ Upload a numeric CSV, select the target column, adjust parameters, and run the g
 | `lstm.py` | LSTM soft-sensor model |
 | `lifelong_lstm.py` | Lifelong-learning adaptation model |
 | `soft-sensor-based-adaptation-learning/` | Flask server and web interface |
+
+## References
+
+1. J. Chen, I. N'Doye, Y. Myshkevych, F. Aljehani, M. K. Monjed, T.-M. Laleg-Kirati, P.-Y. Hong, Viral particle prediction in wastewater treatment plants using nonlinear lifelong learning models, npj Clean Water 8 (2025) 1–13.
+2. J. Chen, I. N'Doye, J. S. Medina, S. Shah, P.-Y. Hong, Model generalization paradigms for predicting viral particles and evaluating removal efficiencies in anaerobic membrane bioreactor plants, npj Emerging Contaminants 2 (10) (2026) 1–16.
+3. M. Jumat, N. Hasan, P. Subramanian, C. Heberling, R.-R. Colwell, P.-Y. Hong, Membrane bioreactor-based wastewater treatment plant in Saudi Arabia: Reduction of viral diversity, load, and infectious capacity, Water 9 (2017) 534.
 
 ## License
 
