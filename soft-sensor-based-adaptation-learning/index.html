@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="view-ps">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
-<body>
+<body class="view-ps">
 
     <!-- ── App header ─────────────────────────────────────────────────────── -->
     <header class="app-header">
@@ -26,14 +26,6 @@
             <span class="file-name" id="real-filename">No file selected</span>
             <span class="data-info" id="real-info"></span>
             <span class="loading-indicator" id="real-loading">Loading&hellip;</span>
-        </div>
-        <div class="advanced-options">
-            <button id="adv-toggle" class="btn-advanced" type="button">&#9881; Advanced Options &#9662;</button>
-            <div class="advanced-menu" id="advanced-menu" hidden>
-                <div class="adv-menu-title">View</div>
-                <label class="adv-opt"><input type="radio" name="view-mode" value="ps" checked> Single panel</label>
-                <label class="adv-opt"><input type="radio" name="view-mode" value="both"> Two panels</label>
-            </div>
         </div>
     </div>
 

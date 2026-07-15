@@ -87,36 +87,6 @@ body {
     animation: pulse 1.2s ease-in-out infinite;
 }
 
-/* ── Advanced options (view selector) ──────────────────────────────────────── */
-.advanced-options { position: relative; flex-shrink: 0; margin-left: auto; }
-.btn-advanced {
-    padding: 4px 12px; border-radius: 5px;
-    border: 1px solid var(--real); background: #fff8e1;
-    font-size: .76rem; font-weight: 600; cursor: pointer; color: var(--real);
-    white-space: nowrap; transition: background .15s;
-}
-.btn-advanced:hover { background: #ffecb3; }
-.advanced-menu {
-    position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
-    min-width: 190px; padding: 6px;
-    background: #fff; border: 1px solid var(--border); border-radius: 7px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.18);
-    display: flex; flex-direction: column; gap: 2px;
-}
-.advanced-menu[hidden] { display: none; }
-.adv-menu-title {
-    font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
-    color: var(--text-muted); padding: 4px 8px 2px;
-}
-.adv-opt {
-    display: flex; align-items: center; gap: 7px;
-    padding: 6px 8px; border-radius: 5px;
-    font-size: .8rem; color: var(--text); cursor: pointer;
-    background: none; border: none; text-align: left; width: 100%;
-}
-.adv-opt:hover { background: var(--section-bg); }
-.adv-opt input[type="radio"] { cursor: pointer; }
-
 /* ── Single-panel focus view ─────────────────────────────────────────────── */
 body.view-ps .panel.left,
 body.view-ps .lstm-side[data-side="left"],

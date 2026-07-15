@@ -15,48 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('left-title').textContent  = Config.sides.left.title;
     document.getElementById('right-title').textContent = Config.sides.right.title;
 
-    // ── Advanced options: single-algorithm focus / compare-page selector ────
-    const advToggle = document.getElementById('adv-toggle');
-    const advMenu   = document.getElementById('advanced-menu');
-
-    advToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        advMenu.hidden = !advMenu.hidden;
-    });
-    document.addEventListener('click', (e) => {
-        if (!advMenu.hidden && !e.target.closest('.advanced-options')) advMenu.hidden = true;
-    });
-
+    // ── Single-panel view (only view mode; left side stays hidden via .view-ps on <html>/<body>) ──
     function visibleSides() {
-        if (document.body.classList.contains('view-ps')) return ['right'];
-        return ['left', 'right'];
+        return ['right'];
     }
-
-    function applyViewMode(mode) {
-        const root = document.documentElement;
-        document.body.classList.remove('view-ps');
-        root.classList.remove('view-ps');
-        if (mode === 'ps') { document.body.classList.add('view-ps'); root.classList.add('view-ps'); }
-        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-    }
-
-    const savedMode = localStorage.getItem('viewMode') || 'ps';
-    applyViewMode(savedMode);
-    document.querySelectorAll('input[name="view-mode"]').forEach(radio => {
-        radio.checked = (radio.value === savedMode);
-        radio.addEventListener('change', () => {
-            if (!radio.checked) return;
-            applyViewMode(radio.value);
-            localStorage.setItem('viewMode', radio.value);
-            advMenu.hidden = true;
-            if (realCsvText) {
-                visibleSides().forEach(side => {
-                    if (!panels[side].data) runGeneration(side);
-                    else panels[side].render(realData, realColumns);
-                });
-            }
-        });
-    });
 
     // ── State ──────────────────────────────────────────────────────────────
     let realData    = null;
