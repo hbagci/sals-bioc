@@ -6,7 +6,7 @@ SALS-BioC is an interactive, browser-based simulator that couples a synthetic da
 
 The tool runs as a local web application dashboard, organized into three workflows:
 
-- **Synthetic data generation** — augment collected real samples [3] with the EMCM-PS generator (a Markov-chain model using a joint-state representation and probabilistic sampling). Inspect quality through marginal distributions, Pearson correlation heatmaps, PCA / t-SNE projections, and a fidelity scorecard. Export generated data as CSV.
+- **Synthetic data generation** — augment collected real samples [3] with the EMCM-PS generator (an extended Markov chain model that uses a joint-state representation and replaces the transition matrix with probabilistic sampling from the empirical state distribution). Inspect quality through marginal distributions, Pearson correlation heatmaps, PCA / t-SNE projections, and a fidelity scorecard. Export generated data as CSV.
 - **LSTM soft-sensor** — train and test an LSTM to predict a selected target from process variables, validate on unseen data, and download trained models.
 - **Lifelong-learning adaptation** — train a source-domain model, adapt it to an unseen target replicate, and track per-batch adaptation performance, with optional Bayesian hyperparameter optimization [1, 2].
 
