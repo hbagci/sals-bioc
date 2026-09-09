@@ -13,10 +13,11 @@ class LifelongLSTMSide {
         this._targetColumn = null;
 
         this._params = {
-            mu:                      1e-06,
-            lam:                     1e-06,
-            beta:                    1e-05,
-            batch_size:              32,
+            mu:                      6e-04,
+            lam:                     1e-04,
+            beta:                    2e-04,
+            k:                       5,
+            batch_size:              30,
             learning_rate:           1e-3,
             epochs:                  50,
             early_stopping_patience: 10,
@@ -142,6 +143,7 @@ class LifelongLSTMSide {
             { label: 'μ (mu)',     key: 'mu',   hint: 'Memory regularization' },
             { label: 'λ (lambda)', key: 'lam',  hint: 'Basis regularization' },
             { label: 'β (beta)',   key: 'beta', hint: 'Hessian regularization' },
+            { label: 'Shared components k', key: 'k', hint: 'Number of shared basis components' },
         ]);
 
         const saveRow = document.createElement('div');

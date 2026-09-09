@@ -12,6 +12,7 @@ import copy
 
 import numpy as np
 import pandas as pd
+import torch
 from flask import Flask, request, jsonify, send_from_directory
 
 # ── Load the algorithm modules from the parent directory ────────────────────
@@ -88,6 +89,7 @@ def _get_lstm_model(side, model_id, model_b64):
 def _seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 @app.post("/api/generate/emcm-ps")

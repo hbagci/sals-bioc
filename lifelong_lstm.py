@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.ensemble import IsolationForest
+from sklearn.linear_model import Lasso
 from numpy.linalg import inv
 from scipy.linalg import sqrtm
 from bayes_opt import BayesianOptimization
@@ -23,6 +24,7 @@ DEFAULTS = {
     'mu':                       1e-06,
     'lam':                      1e-06,
     'beta':                     1e-05,
+    'k':                        5,
     'batch_size':               32,
     'learning_rate':            1e-3,
     'epochs':                   50,
@@ -51,21 +53,27 @@ def set_device(choice):
 class LSTMModel(nn.Module):
     def __init__(self, input_dim):
         super().__init__()
-        self.lstm1   = nn.LSTM(input_dim, 128, batch_first=True)
-        self.lstm2   = nn.LSTM(128, 64, batch_first=True)
-        self.fc1     = nn.Linear(64, 32)
-        self.fc2     = nn.Linear(32, 1)
-        self.dropout = nn.Dropout(0.4)
-        self.relu    = nn.ReLU()
+        self.lstm1      = nn.LSTM(input_dim, 128, batch_first=True)
+        self.lstm2      = nn.LSTM(128, 64, batch_first=True)
+        self.fc1        = nn.Linear(64, 32)
+        self.fc2        = nn.Linear(32, 1)
+        self.theta_proj = nn.Linear(32, input_dim)
+        self.dropout    = nn.Dropout(0.4)
+        self.relu       = nn.ReLU()
 
-    def forward(self, x):
+    def features(self, x):
         out, _ = self.lstm1(x)
         out    = self.dropout(out)
         out, _ = self.lstm2(out)
         out    = self.dropout(out)
         out    = self.relu(self.fc1(out[:, -1, :]))
-        out    = self.dropout(out)
-        return self.fc2(out).view(-1)
+        return self.dropout(out)
+
+    def forward(self, x, theta):
+        return self.fc2(self.features(x)).view(-1) + (x[:, -1, :] * theta).sum(dim=1)
+
+    def theta(self, x):
+        return self.theta_proj(self.features(x)).mean(dim=0)
 
 
 # ============================================================================
@@ -104,12 +112,13 @@ def inverse_transform(scaler, data_scaled):
 # STAGE 3 — Lifelong Learning Core (Streaming / ELLA)
 # ============================================================================
 class Streaming:
-    def __init__(self, d, mu, lam, beta, epochs, early_stopping_patience, batch_size, learning_rate):
+    def __init__(self, d, k, mu, lam, beta, epochs, early_stopping_patience, batch_size, learning_rate):
         self.d    = d
-        self.L    = np.random.randn(d, 1)
-        self.A    = np.zeros((d, d))
-        self.b    = np.zeros((d, 1))
-        self.S    = np.zeros((1, 0))
+        self.k    = k
+        self.L    = np.random.randn(d, k)
+        self.A    = np.zeros((d * k, d * k))
+        self.b    = np.zeros((d * k, 1))
+        self.S    = np.zeros((k, 0))
         self.T    = 0
         self.mu   = mu
         self.lam  = lam
@@ -141,7 +150,12 @@ class Streaming:
             epoch_loss = 0.0
             for bX, by in loader:
                 self.optimizer.zero_grad()
-                loss = self.criterion(self.single_task_model(bX).view(-1), by.view(-1))
+                f       = self.single_task_model.features(bX)
+                base    = self.single_task_model.fc2(f).view(-1)
+                theta_b = self.single_task_model.theta_proj(f.detach()).mean(dim=0)
+                lin     = (bX[:, -1, :] * theta_b).sum(dim=1)
+                loss    = (self.criterion(base, by.view(-1))
+                           + self.criterion(base.detach() + lin, by.view(-1)))
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss += loss.item()
@@ -156,36 +170,30 @@ class Streaming:
 
         self.single_task_model.eval()
         with torch.no_grad():
-            theta_t = self.single_task_model(X_tensor).cpu().numpy().ravel()
+            theta_t = self.single_task_model.theta(X_tensor).cpu().numpy()
 
         D_t      = self.get_hessian(X)
         D_t_sqrt = np.real(sqrtm(D_t))
 
-        if theta_t.shape[0] != D_t_sqrt.shape[1]:
-            theta_t = np.resize(theta_t, D_t_sqrt.shape[1])
+        s_t = Lasso(alpha=self.mu, max_iter=5000, fit_intercept=False).fit(
+            D_t_sqrt @ self.L, D_t_sqrt @ theta_t
+        ).coef_.reshape(self.k, 1)
 
-        L_transformed = D_t_sqrt @ self.L
-        L_transformed_tensor = torch.FloatTensor(
-            L_transformed.T.reshape(1, 1, -1)[:, :, :X.shape[1]]
-        ).to(device)
-
-        with torch.no_grad():
-            sparse_coeffs = self.single_task_model(L_transformed_tensor).cpu().numpy().reshape(-1, 1)
-
-        self.S   = np.hstack((self.S, sparse_coeffs.reshape(-1, 1)))
-        s_t      = self.S[:, -1].reshape(-1, 1)
-        self.A  += np.kron(s_t @ s_t.T, D_t) + self.mu * np.eye(self.d)
+        self.S   = np.hstack((self.S, s_t))
+        self.A  += np.kron(s_t @ s_t.T, D_t) + self.mu * np.eye(self.d * self.k)
         self.b  += np.kron(s_t.T, theta_t @ D_t).T
 
-        L_vec  = np.real(inv(self.A / self.T + self.lam * np.eye(self.d))) @ self.b / self.T
-        self.L = L_vec.reshape((1, self.d)).T
+        L_vec  = np.real(inv(self.A / self.T + self.lam * np.eye(self.d * self.k))) @ self.b / self.T
+        self.L = L_vec.reshape((self.k, self.d)).T
         self.revive_dead_components()
+        self.L /= np.maximum(np.linalg.norm(self.L, axis=0, keepdims=True), 1e-12)
 
     def predict(self, X):
         self.single_task_model.eval()
         with torch.no_grad():
+            theta    = torch.FloatTensor((self.L @ self.S[:, -1:]).ravel()).to(device)
             X_tensor = torch.FloatTensor(X.reshape(-1, 1, self.d)).to(device)
-            return self.single_task_model(X_tensor).cpu().numpy().ravel()
+            return self.single_task_model(X_tensor, theta).cpu().numpy().ravel()
 
     def get_hessian(self, X):
         XTX = X.T @ X
@@ -246,6 +254,8 @@ def bayes_optimize(X_train, y_train, X_test, y_test, input_dim, params, init_poi
     patience = int(params.get('early_stopping_patience', DEFAULTS['early_stopping_patience']))
     bs       = int(params.get('batch_size',              DEFAULTS['batch_size']))
     lr       = float(params.get('learning_rate',         DEFAULTS['learning_rate']))
+    k        = int(params.get('k',                       DEFAULTS['k']))
+    adapt_bs = int(params.get('adaptation_batch_size', DEFAULTS['adaptation_batch_size']))
 
     mu_bounds   = (float(params.get('mu_min',   DEFAULTS['mu_min'])),
                    float(params.get('mu_max',   DEFAULTS['mu_max'])))
@@ -255,9 +265,16 @@ def bayes_optimize(X_train, y_train, X_test, y_test, input_dim, params, init_poi
                    float(params.get('beta_max', DEFAULTS['beta_max'])))
 
     def objective(mu, lamda, beta):
-        s = Streaming(input_dim, mu, lamda, beta, epochs, patience, bs, lr)
+        s = Streaming(input_dim, k, mu, lamda, beta, epochs, patience, bs, lr)
         s.fit(X_train, y_train)
-        return -float(np.sqrt(mean_squared_error(y_test, s.predict(X_test))))
+        preds, trues = [], []
+        for i in range(0, len(X_test), adapt_bs):
+            Xb, yb = X_test[i:i + adapt_bs], y_test[i:i + adapt_bs]
+            preds.append(s.predict(Xb))
+            trues.append(yb)
+            s.fit(Xb, yb)
+        return -float(np.sqrt(mean_squared_error(
+            np.concatenate(trues), np.concatenate(preds))))
 
     opt = BayesianOptimization(
         f=objective,
@@ -288,6 +305,7 @@ def run_train(data1, input_dim, scaler, params):
     epochs   = int(params.get('epochs',                    DEFAULTS['epochs']))
     patience = int(params.get('early_stopping_patience',   DEFAULTS['early_stopping_patience']))
     ratio    = float(params.get('train_ratio',             DEFAULTS['train_ratio']))
+    k        = int(params.get('k',                         DEFAULTS['k']))
 
     X1 = data1[:, :input_dim]
     y1 = data1[:, input_dim]
@@ -296,7 +314,7 @@ def run_train(data1, input_dim, scaler, params):
     X_train, y_train = X1[:split], y1[:split]
     X_test,  y_test  = X1[split:], y1[split:]
 
-    streaming = Streaming(input_dim, mu, lam, beta, epochs, patience, bs, lr)
+    streaming = Streaming(input_dim, k, mu, lam, beta, epochs, patience, bs, lr)
     streaming.fit(X_train, y_train)
 
     def rescale(X, y):
